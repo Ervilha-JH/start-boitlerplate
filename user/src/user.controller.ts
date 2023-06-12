@@ -7,7 +7,7 @@ export class AppController {
   constructor(private readonly appService: AppService) {}
 
   @MessagePattern({ cmd: 'get_users' })
-  getUsers() {
-    return this.appService.getUsers();
+  async getUsers() {
+    return await this.appService.getUsers();
   }
 }

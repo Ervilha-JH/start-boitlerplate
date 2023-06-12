@@ -1,22 +1,29 @@
 import { Controller, Get, Inject } from '@nestjs/common';
-import { AppService } from './app.service';
-import { Account } from './interfaces/account-interface';
+import { Profile } from './interfaces/account-interface';
 import { User } from './interfaces/user-interface';
 import { ClientProxy } from '@nestjs/microservices';
 
 @Controller()
 export class AppController {
   constructor(
-    @Inject('PUBSUB')
-    private readonly client: ClientProxy, // private readonly appService: AppService,
+    @Inject('USER')
+    private readonly userClient: ClientProxy,
+    @Inject('PROFILE')
+    private readonly profileClient: ClientProxy,
   ) {}
 
   @Get('accounts')
   async getAccounts() {
-    const users = this.client.send<User[]>(
-      { cmd: 'get_users' },
-      { page: 1, items: 10 },
-    );
-    return users;
+    const users = await this.userClient
+      .send<User[]>({ cmd: 'get_users' }, { page: 1, items: 10 })
+      .toPromise();
+    const profiles = await this.profileClient
+      .send<Profile[]>({ cmd: 'get_profiles' }, { ids: users.map((u) => u.id) })
+      .toPromise();
+
+    return users.map((u) => ({
+      ...u,
+      ...profiles.find((p) => p.userId === u.id),
+    }));
   }
 }
